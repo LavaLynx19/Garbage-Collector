@@ -47,17 +47,15 @@ Prove objects unreachable and reclaim them while a mutator keeps rewriting the o
 - Overload runs end in either recovery or a clean out-of-memory error, never corruption.
 
 **Performance — all three lenses, reported per stage:**
-- **(a) Reference bars:** generational stage targets G1-class pauses (tens of ms at p99.9); concurrent stage targets Go/ZGC-class pauses (< 1 ms at p99.9). Stop-the-world mark-sweep is the measured baseline.
+- **(a) Reference bars:** generational stage p99.9 pause ≤ 50 ms; concurrent stage p99.9 pause < 1 ms. Stop-the-world mark-sweep is the measured baseline. Judged at both 1 GB and 2 GB live heap.
 - **(b) Go comparison:** final-stage pause distribution and throughput shown side by side with Go on identical workloads.
-- **(c) Relative improvement:** each stage beats the previous stage's p99.9 pause by factor **X** while losing no more than **Y%** throughput.
+- **(c) Relative improvement:** each stage beats the previous stage's p99.9 pause by at least 2× while losing no more than 10% throughput.
 
 **Measurement integrity:** pauses reported as full distributions (p50/p99/p99.9/max), never averages alone; the harness avoids coordinated omission.
 
 ## Open questions
 
-1. Values for **X** and **Y** in criterion (c).
-2. Exact p99.9 number for the generational reference bar ("tens of ms" is a range, not a target).
-3. Live-heap size at which reference bars (a) are judged: 1 GB, 2 GB, or both.
+1. Are criteria (a) and (c) judged per workload or in aggregate? (A generational stage's p99.9 can be dominated by full collections on workloads whose live heap is mostly long-lived.)
 
 ## Seed brief
 
