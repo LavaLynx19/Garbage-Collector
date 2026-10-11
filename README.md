@@ -1,6 +1,6 @@
 # Garbage Collector for a Language Runtime (JVM / Go GC Style)
 
-**Status:** DESIGN phase — README draft, awaiting approval. Terms are defined in [CONTEXT.md](CONTEXT.md).
+**Status:** README approved (DESIGN complete). ARCH phase in progress. Terms are defined in [CONTEXT.md](CONTEXT.md).
 
 ## Problem
 
