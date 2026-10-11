@@ -51,11 +51,9 @@ Prove objects unreachable and reclaim them while a mutator keeps rewriting the o
 - **(b) Go comparison:** final-stage pause distribution and throughput shown side by side with Go on identical workloads.
 - **(c) Relative improvement:** each stage beats the previous stage's p99.9 pause by at least 2× while losing no more than 10% throughput.
 
+**How (a) and (c) are judged:** per workload, never pooled. Each workload declares up front which stages it is expected to pass; a miss on a declared exception is reported (with its cause) but does not fail the stage, and the declaration may be tightened after a fix and retest. A miss on an undeclared case fails the stage.
+
 **Measurement integrity:** pauses reported as full distributions (p50/p99/p99.9/max), never averages alone; the harness avoids coordinated omission.
-
-## Open questions
-
-1. Are criteria (a) and (c) judged per workload or in aggregate? (A generational stage's p99.9 can be dominated by full collections on workloads whose live heap is mostly long-lived.)
 
 ## Seed brief
 
