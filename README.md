@@ -1,6 +1,63 @@
 # Garbage Collector for a Language Runtime (JVM / Go GC Style)
 
-**Status:** DESIGN phase — not started. Everything below is the seed brief (project #35 from the ideas list), not agreed requirements. Goals, user stories, constraints and success criteria are written here during the DESIGN interview.
+**Status:** DESIGN phase — README draft, awaiting approval. Terms are defined in [CONTEXT.md](CONTEXT.md).
+
+## Problem
+
+Prove objects unreachable and reclaim them while a mutator keeps rewriting the object graph, budgeted in pause time rather than throughput — and measure honestly how each collector design trades pauses against mutator cost.
+
+## Goals
+
+1. Build three collector stages over one minimal heap and allocator: stop-the-world mark-sweep → generational → concurrent marking.
+2. Measure every stage on the same workloads: full pause distribution, throughput, allocation vs reclamation rate.
+3. Measure a reference-counting baseline once against mark-sweep on the same workloads (with its cycle-handling cost visible).
+4. Compare the final stage against Go's collector on the same workloads and machine.
+5. Make heap corruption fail fast and close to its cause.
+
+## User stories
+
+- As the experimenter, I run a named workload against a chosen stage and get a pause histogram plus throughput, reproducibly.
+- As the experimenter, I switch stages without changing workload code.
+- As the experimenter, I run any workload in stress mode with the heap verifier and get an immediate, localized failure if a root is missed or an invariant breaks.
+- As the experimenter, I drive the mutator past what the collector can reclaim and see assists slow it, then the backstop fire, then a clear out-of-memory error — never silent corruption.
+- As the experimenter, I run the same workloads ported to Go and compare pause distributions side by side.
+
+## Constraints
+
+- **Roots:** precise only, via handles. No conservative stack scanning.
+- **Mutators:** one mutator thread in v1, but safepoints are real polls designed to extend to N threads.
+- **Overload policy:** mutator assists; backstop is stop-the-world full collection, then out-of-memory.
+- **Heap size:** default live heap 1–2 GB; stretch up to ~4 GB. The harness refuses any run whose expected heap footprint exceeds ~50% of physical RAM.
+- **Benchmark machine:** the user's M4 Pro (macOS, arm64, 24 GB). The cloud sandbox (Linux x86-64) is for correctness runs only; its timings are never reported.
+- **Comparison runs** (Go vs this collector) run sequentially, never concurrently.
+- **Stack:** not chosen here — decided in ARCHITECTURE with alternatives. Whether a language can enforce handle discipline at compile time is one selection criterion.
+
+## Scope
+
+**In v1:** the three stages, RC baseline, workloads, stress mode, heap verifier, measurement harness, Go comparison (as a milestone after the concurrent stage).
+
+**Deferred:** multiple mutator threads; weak references and finalizers; wrapping the collector in a bytecode VM.
+
+**Out:** conservative/Boehm-style collection; comparison against JVM collectors.
+
+## Success criteria
+
+**Correctness (every stage, gate before moving on):**
+- Every workload passes in stress mode at N=1 with the heap verifier on, with zero verifier failures.
+- Overload runs end in either recovery or a clean out-of-memory error, never corruption.
+
+**Performance — all three lenses, reported per stage:**
+- **(a) Reference bars:** generational stage targets G1-class pauses (tens of ms at p99.9); concurrent stage targets Go/ZGC-class pauses (< 1 ms at p99.9). Stop-the-world mark-sweep is the measured baseline.
+- **(b) Go comparison:** final-stage pause distribution and throughput shown side by side with Go on identical workloads.
+- **(c) Relative improvement:** each stage beats the previous stage's p99.9 pause by factor **X** while losing no more than **Y%** throughput.
+
+**Measurement integrity:** pauses reported as full distributions (p50/p99/p99.9/max), never averages alone; the harness avoids coordinated omission.
+
+## Open questions
+
+1. Values for **X** and **Y** in criterion (c).
+2. Exact p99.9 number for the generational reference bar ("tens of ms" is a range, not a target).
+3. Live-heap size at which reference bars (a) are judged: 1 GB, 2 GB, or both.
 
 ## Seed brief
 
