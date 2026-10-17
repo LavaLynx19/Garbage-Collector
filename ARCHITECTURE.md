@@ -40,4 +40,6 @@
 
 **Sanity program:** one hand-written, realistic program ported natively to all four runtimes, to catch behaviour that statistical workloads miss. It is the single exception to "workloads are defined once" (README → Constraints), is reported but never gated, and is not fingerprinted (its four versions are equivalent by review, not by hash).
 
-**Open:** which program the sanity program is, and when it is built.
+The sanity program is an **LRU cache under a skewed (hot-key) request load**: long-lived entries with steady churn, old→young pointer writes on every entry update (exercising generational barriers and remembered sets), and eviction that can react to heap pressure.
+
+**Open:** when the sanity program is built.
