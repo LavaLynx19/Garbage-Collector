@@ -1,6 +1,6 @@
 # Garbage Collector for a Language Runtime (JVM / Go GC Style)
 
-**Status:** README amended in ARCH (multi-language scope) — awaiting re-approval. Terms are defined in [CONTEXT.md](CONTEXT.md).
+**Status:** README approved (incl. multi-language amendment). ARCH phase in progress. Terms are defined in [CONTEXT.md](CONTEXT.md).
 
 ## Problem
 
