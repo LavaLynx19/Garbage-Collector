@@ -1,6 +1,6 @@
 # Garbage Collector for a Language Runtime (JVM / Go GC Style)
 
-**Status:** README approved (DESIGN complete). ARCH phase in progress. Terms are defined in [CONTEXT.md](CONTEXT.md).
+**Status:** README amended in ARCH (multi-language scope) — awaiting re-approval. Terms are defined in [CONTEXT.md](CONTEXT.md).
 
 ## Problem
 
@@ -9,15 +9,17 @@ Prove objects unreachable and reclaim them while a mutator keeps rewriting the o
 ## Goals
 
 1. Build three collector stages over one minimal heap and allocator: stop-the-world mark-sweep → generational → concurrent marking.
-2. Measure every stage on the same workloads: full pause distribution, throughput, allocation vs reclamation rate.
-3. Measure a reference-counting baseline once against mark-sweep on the same workloads (with its cycle-handling cost visible).
-4. Compare the final stage against Go's collector on the same workloads and machine.
-5. Make heap corruption fail fast and close to its cause.
+2. Build that full progression three times, in sequence: **C** (lead), then **Rust**, then **Zig**. Each implementation finishes all three stages before the next one starts.
+3. Measure every stage on the same workloads: full pause distribution, throughput, allocation vs reclamation rate.
+4. Measure a reference-counting baseline once, in the C implementation, against mark-sweep on the same workloads (with its cycle-handling cost visible).
+5. Compare each implementation's final stage against Go's collector on the same workloads and machine.
+6. Make heap corruption fail fast and close to its cause.
 
 ## User stories
 
 - As the experimenter, I run a named workload against a chosen stage and get a pause histogram plus throughput, reproducibly.
 - As the experimenter, I switch stages without changing workload code.
+- As the experimenter, I run the same workload, unchanged, against any implementation (C, Rust, Zig) or Go.
 - As the experimenter, I run any workload in stress mode with the heap verifier and get an immediate, localized failure if a root is missed or an invariant breaks.
 - As the experimenter, I drive the mutator past what the collector can reclaim and see assists slow it, then the backstop fire, then a clear out-of-memory error — never silent corruption.
 - As the experimenter, I run the same workloads ported to Go and compare pause distributions side by side.
@@ -30,11 +32,12 @@ Prove objects unreachable and reclaim them while a mutator keeps rewriting the o
 - **Heap size:** default live heap 1–2 GB; stretch up to ~4 GB. The harness refuses any run whose expected heap footprint exceeds ~50% of physical RAM.
 - **Benchmark machine:** the user's M4 Pro (macOS, arm64, 24 GB). The cloud sandbox (Linux x86-64) is for correctness runs only; its timings are never reported.
 - **Comparison runs** (Go vs this collector) run sequentially, never concurrently.
-- **Stack:** not chosen here — decided in ARCHITECTURE with alternatives. Whether a language can enforce handle discipline at compile time is one selection criterion.
+- **Implementations:** C (lead), Rust, Zig, built in that order. Toolchains, versions and rationale live in ARCHITECTURE.
+- **Workloads** are defined once and shared by every implementation and the Go port; how is decided in ARCHITECTURE.
 
 ## Scope
 
-**In v1:** the three stages, RC baseline, workloads, stress mode, heap verifier, measurement harness, Go comparison (as a milestone after the concurrent stage).
+**In v1:** the three stages in each of C, Rust and Zig; RC baseline (C only); workloads, stress mode, heap verifier, measurement harness, Go comparison (as a milestone after the concurrent stage).
 
 **Deferred:** multiple mutator threads; weak references and finalizers; wrapping the collector in a bytecode VM.
 
@@ -42,11 +45,11 @@ Prove objects unreachable and reclaim them while a mutator keeps rewriting the o
 
 ## Success criteria
 
-**Correctness (every stage, gate before moving on):**
+**Correctness (every stage of every implementation, gate before moving on):**
 - Every workload passes in stress mode at N=1 with the heap verifier on, with zero verifier failures.
 - Overload runs end in either recovery or a clean out-of-memory error, never corruption.
 
-**Performance — all three lenses, reported per stage:**
+**Performance — all three lenses, reported per stage.** Gating applies to the C implementation only; Rust and Zig results are reported side by side with C's, never pass/fail:
 - **(a) Reference bars:** generational stage p99.9 pause ≤ 50 ms; concurrent stage p99.9 pause < 1 ms. Stop-the-world mark-sweep is the measured baseline. Judged at both 1 GB and 2 GB live heap.
 - **(b) Go comparison:** final-stage pause distribution and throughput shown side by side with Go on identical workloads.
 - **(c) Relative improvement:** each stage beats the previous stage's p99.9 pause by at least 2× while losing no more than 10% throughput.
