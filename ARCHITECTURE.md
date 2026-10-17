@@ -21,3 +21,23 @@
 **Rejected — Go as an implementation language:** a collector hosted on Go's runtime inherits Go's own GC, scheduler and signal-based preemption jitter, which would contaminate exactly the sub-millisecond pause tail being measured, and would make the Go comparison non-independent. Go remains the comparison runtime only.
 
 **Open:** exact toolchain versions for each language (pinned when that implementation starts).
+
+## 2. Workload sharing across runtimes
+
+**Decision:** seeded generators. A workload is a language-neutral parameter file (object sizes, lifetimes, graph shape, allocation rate, seed). Each runtime (C, Rust, Zig, Go) has one generic **driver** that expands it into an operation stream on the fly.
+
+**Considered:**
+- *Trace replay* — identical ops guaranteed, but multi-GB trace streaming in the measured path dilutes the barrier cost the throughput criterion must expose, and workloads cannot react to heap state. Kept only as a debugging aid (below).
+- *Native code per runtime* — most realistic, but every workload costs four ports and versions drift. Kept only as one sanity program (below).
+
+**Equivalence guarantees:**
+- **Fingerprint:** every driver folds each operation into a running hash; the harness compares fingerprints across runtimes and invalidates any run whose fingerprint differs.
+- **Record mode:** a driver can dump its first N operations to a small trace file so two diverging drivers can be diffed. Never enabled in measured runs.
+
+**Driver rules:**
+- Generation is integer-only: a bit-exact portable PRNG (SplitMix64 / xoshiro256** class) and integer or table-driven sampling. No floating-point math library calls — `log`/`exp` differ across C, Rust, Zig and Go libms and silently break equivalence.
+- Drivers keep their own bookkeeping off the collected heap. Mandatory for Go (driver allocations would load the collector under test); applied to all drivers for symmetry.
+
+**Sanity program:** one hand-written, realistic program ported natively to all four runtimes, to catch behaviour that statistical workloads miss. It is the single exception to "workloads are defined once" (README → Constraints), is reported but never gated, and is not fingerprinted (its four versions are equivalent by review, not by hash).
+
+**Open:** which program the sanity program is, and when it is built.

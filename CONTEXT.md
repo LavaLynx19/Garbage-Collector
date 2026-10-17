@@ -14,6 +14,22 @@ _Avoid_: Application, client, user thread
 A named, repeatable mutator scenario with a characteristic allocation pattern (e.g. long-lived cache, short-lived garbage, deep linked structure, bursty allocation).
 _Avoid_: Benchmark, test case
 
+**Driver**:
+The per-runtime component that turns a workload into the operations the mutator performs.
+_Avoid_: Runner, generator, harness
+
+**Operation stream**:
+The ordered sequence of allocations, pointer writes and handle operations a driver produces for one workload and seed.
+_Avoid_: Trace (reserved for record-mode output), op log
+
+**Fingerprint**:
+A running hash of an operation stream, used to prove two runtimes executed the same workload.
+_Avoid_: Checksum, signature
+
+**Sanity program**:
+A realistic, hand-written mutator ported to every runtime, used to catch behaviour that workloads miss; reported, never gated.
+_Avoid_: Real workload, benchmark app
+
 **Handle**:
 An explicitly registered reference through which the mutator holds a heap object, so the collector knows every root precisely and may move the object.
 _Avoid_: Raw pointer, local ref
